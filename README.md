@@ -1,4 +1,4 @@
-#Recommendations for implementation:
+# Recommendations for implementation
 
 - Install Golang and set up a development environment (Codespaces already contains all the necessary settings)
 - Create a new project on GitHub and set up Git.
