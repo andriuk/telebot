@@ -4,6 +4,7 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"encoding/csv"
 	"fmt"
 	"log"
 	"os"
@@ -21,13 +22,8 @@ var (
 var kbotCmd = &cobra.Command{
 	Use:     "kbot",
 	Aliases: []string{"start"},
-	Short:   "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short:   "Command to start telegram bot",
+	Long:    `This bot helps you write your text in local csv file`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("kbot %s started", appVersion)
 
@@ -41,10 +37,32 @@ to quickly create a Cobra application.`,
 			return
 		}
 
+		// File handling
+		file, err := os.OpenFile("messages.csv", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Fatalf("Error opening file: %s", err)
+			return
+		}
+		defer file.Close()
+
+		writer := csv.NewWriter(file)
+		defer writer.Flush()
+
+		// Handle incoming messages
 		kbot.Handle(telebot.OnText, func(m telebot.Context) error {
 			log.Print(m.Message().Payload, m.Text())
-			payload := m.Message().Payload
 
+			// Prepare data for CSV
+			record := []string{m.Text(), time.Now().Format("2006-01-02 15:04:05")}
+
+			// Write to CSV file
+			if err := writer.Write(record); err != nil {
+				log.Printf("Error writing to CSV: %s", err)
+			}
+			writer.Flush() // Flush buffer to ensure data is written immediately
+
+			// Process the message and send a response if needed
+			payload := m.Message().Payload
 			switch payload {
 			case "hello":
 				err = m.Send(fmt.Sprintf("Hello I'm Telebot %s!", appVersion))
