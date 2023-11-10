@@ -62,11 +62,7 @@ var kbotCmd = &cobra.Command{
 			writer.Flush() // Flush buffer to ensure data is written immediately
 
 			// Process the message and send a response if needed
-			payload := m.Message().Payload
-			switch payload {
-			case "hello":
-				err = m.Send(fmt.Sprintf("Hello I'm Telebot %s!", appVersion))
-			}
+			err = m.Send(fmt.Sprintf("You said: \"%s\" at %s", m.Text(), time.Now().Format("2006-01-02 15:04:05")))
 
 			return err
 		})
