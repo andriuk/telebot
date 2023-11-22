@@ -1,12 +1,11 @@
-APP=$(shell basename $(shell git remote get-url origin))
+ARGS1 := $(word 1,$(MAKECMDGOALS))
+ARGS2 := $(word 2,$(MAKECMDGOALS))
 
-REGISTRY=yuandrk
+TARGETOS ?= $(if $(filter apple,$(ARGS1)),darwin,$(if $(filter windows,$(ARGS1)),windows,linux))
+TARGETARCH ?= $(if $(filter arm arm64,$(ARGS2)),arm64,$(if $(filter amd amd64,$(ARGS2)),amd64,amd64))
 
-VERSION=$(shell git describe --tags --abbrev=0)-$(shell git rev-parse --short HEAD)
-
-TARGETOS=linux #linux darwin windows
-
-TARGETARCH=amd64 #amd64 arm64
+BUILD_DIR ?= build
+EXT ?= 
 
 format:
 	gofmt -s -w ./
@@ -20,15 +19,15 @@ test:
 get:
 	go get
 
-build: format get
-	CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -v -o  telebot -ldflags "-X="github.com/andriuk/telebot/cmd.appVersion=${VERSION}
+build: format get ## Default build for Linux amd64
+	CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -v -o ${BUILD_DIR}/telebot_${TARGETOS}${EXT} -ldflags "-X=github.com/andriuk/telebot/cmd.appVersion=${VERSION}"
 
-image:
-	docker build . -t ${REGISTRY}/${APP}:${VERSION}-${TARGETARCH}  --build-arg TARGETARCH=${TARGETARCH}
+linux: build ## Build a Linux binary. [ linux [[arm|arm64] | [amd|amd64]] ] to build for the specific ARCH 
 
-push:
-	docker push ${REGISTRY}/${APP}:${VERSION}-${TARGETARCH}
+apple: build ## Build a macOS binary
 
-clean:
-	rm -rf kbot
-	docker rmi ${REGISTRY}/${APP}:${VERSION}-${TARGETARCH}APP
+windows: EXT = .exe
+windows: build ## Build a Windows binary
+
+%::
+	@true
