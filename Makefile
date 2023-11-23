@@ -1,12 +1,18 @@
-ARGS1 := $(word 1,$(MAKECMDGOALS))
-ARGS2 := $(word 2,$(MAKECMDGOALS))
+ifeq '$(findstring ;,$(PATH))' ';'
+    detected_OS := windows
+	detected_arch := amd64
+else
+    detected_OS := $(shell uname | tr '[:upper:]' '[:lower:]' 2> /dev/null || echo Unknown)
+    detected_OS := $(patsubst CYGWIN%,Cygwin,$(detected_OS))
+    detected_OS := $(patsubst MSYS%,MSYS,$(detected_OS))
+    detected_OS := $(patsubst MINGW%,MSYS,$(detected_OS))
+    detected_arch := $(shell dpkg --print-architecture 2>/dev/null | awk '{print $$1}' || echo amd64)
 
-TARGETOS ?= $(if $(filter apple,$(ARGS1)),darwin,$(if $(filter windows,$(ARGS1)),windows,linux))
-TARGETARCH ?= $(if $(filter arm arm64,$(ARGS2)),arm64,$(if $(filter amd amd64,$(ARGS2)),amd64,amd64))
+endif
 
-BUILD_DIR ?= build
-EXT ?= 
-
+APP=$(shell basename $(shell git remote get-url origin))
+VERSION=$(shell git describe --tags --abbrev=0)-$(shell git rev-parse --short HEAD) 
+REGESTRY=public.ecr.aws/a3c6o0j2
 format:
 	gofmt -s -w ./
 
@@ -19,15 +25,37 @@ test:
 get:
 	go get
 
-build: format get ## Default build for Linux amd64
-	CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -v -o ${BUILD_DIR}/telebot_${TARGETOS}${EXT} -ldflags "-X=github.com/andriuk/telebot/cmd.appVersion=${VERSION}"
+build: format get
+	@printf "$GDetected OS/ARCH: $R$(detected_OS)/$(detected_arch)$D\n"
+	CGO_ENABLED=0 GOOS=$(detected_OS) GOARCH=$(detected_arch) go build -v -o telebot -ldflags "-X="github.com/andriuk/telebot/cmd.appVersion=${VERSION}
 
-linux: build ## Build a Linux binary. [ linux [[arm|arm64] | [amd|amd64]] ] to build for the specific ARCH 
+linux: format get
+	@printf "$GTarget OS/ARCH: $Rlinux/$(detected_arch)$D\n"
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(detected_arch) go build -v -o telebot -ldflags "-X="github.com/andriuk/telebot/cmd.appVersion=${VERSION}
+	docker build --build-arg name=linux -t ${REGESTRY}/${APP}:$(detected_arch)_linux_${VERSION} .
 
-apple: build ## Build a macOS binary
+windows: format get
+	@printf "$GTarget OS/ARCH: $Rwindows/$(detected_arch)$D\n"
+	CGO_ENABLED=0 GOOS=windows GOARCH=$(detected_arch) go build -v -o telebot -ldflags "-X="github.com/andriuk/telebot/cmd.appVersion=${VERSION}
+	docker build --build-arg name=windows -t ${REGESTRY}/${APP}:$(detected_arch)_windows_${VERSION} .
 
-windows: EXT = .exe
-windows: build ## Build a Windows binary
+darwin:format get
+	@printf "$GTarget OS/ARCH: $Rdarwin/$(detected_arch)$D\n"
+	CGO_ENABLED=0 GOOS=darwin GOARCH=$(detected_arch) go build -v -o telebot -ldflags "-X="github.com/andriuk/telebot/cmd.appVersion=${VERSION}
+	docker build --build-arg name=darwin -t ${REGESTRY}/${APP}:$(detected_arch)_darwin_${VERSION} .
 
-%::
-	@true
+arm: format get
+	@printf "$GTarget OS/ARCH: $R$(detected_OS)/arm$D\n"
+	CGO_ENABLED=0 GOOS=$(detected_OS) GOARCH=arm go build -v -o telebot -ldflags "-X="github.com/andriuk/telebot/cmd.appVersion=${VERSION}
+	docker build --build-arg name=arm -t ${REGESTRY}/${APP}:$(detected_OS)_arm_${VERSION} .
+
+image: build
+	docker build . -t ${REGESTRY}/${APP}:$(detected_arch)_${VERSION}
+
+push:
+	docker push ${REGESTRY}/${APP}:$(detected_arch)_${VERSION}
+
+clean:
+	@rm -rf telebot; \
+	IMG1=$$(docker images -q | head -n 1); \
+	if [ -n "$${IMG1}" ]; then  docker rmi -f $${IMG1}; else printf "$RImage not found$D\n"; fi
