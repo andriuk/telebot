@@ -1,4 +1,4 @@
-FROM public.ecr.aws/docker/library/golang:latest as builder
+FROM quay.io/projectquay/golang:1.20 as builder
 
 WORKDIR /go/src/app
 COPY . .
