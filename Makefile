@@ -49,7 +49,7 @@ arm: format get
 	CGO_ENABLED=0 GOOS=$(detected_OS) GOARCH=arm go build -v -o telebot -ldflags "-X="github.com/andriuk/telebot/cmd.appVersion=${VERSION}
 	docker build --build-arg name=arm -t ${REGESTRY}/${APP}:$(detected_OS)_arm_${VERSION} .
 
-image: build
+image:
 	docker build . -t ${REGESTRY}/${APP}:$(detected_arch)_${VERSION}
 
 push:
