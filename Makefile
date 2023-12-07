@@ -1,61 +1,76 @@
-ifeq '$(findstring ;,$(PATH))' ';'
-    detected_OS := windows
-	detected_arch := amd64
-else
-    detected_OS := $(shell uname | tr '[:upper:]' '[:lower:]' 2> /dev/null || echo Unknown)
-    detected_OS := $(patsubst CYGWIN%,Cygwin,$(detected_OS))
-    detected_OS := $(patsubst MSYS%,MSYS,$(detected_OS))
-    detected_OS := $(patsubst MINGW%,MSYS,$(detected_OS))
-    detected_arch := $(shell dpkg --print-architecture 2>/dev/null | awk '{print $$1}' || echo amd64)
+.DEFAULT_GOAL := help
+SHELL := /bin/bash
 
-endif
+APP = $(shell basename $(shell git remote get-url origin) .git)
 
-APP=$(shell basename $(shell git remote get-url origin))
-VERSION=$(shell git describe --tags --abbrev=0)-$(shell git rev-parse --short HEAD) 
-REGESTRY=yuandrk
-format:
+VERSION = $(shell git describe --tags --abbrev=0)-$(shell git rev-parse --short HEAD)
+BUILD_DIR = out
+REGISTRY = ghcr.io/yuandrk
+
+ARGS1 := $(word 1,$(MAKECMDGOALS)) 
+ARGS2 := $(word 2,$(MAKECMDGOALS))
+
+TARGETOS ?= $(if $(filter apple,$(ARGS1)),darwin,$(if $(filter windows,$(ARGS1)),windows,linux))
+TARGETARCH ?= $(if $(filter arm arm64,$(ARGS2)),arm64,$(if $(filter amd amd64,$(ARGS2)),amd64,amd64))
+
+##@ Helpers
+format: ## Code formatting
 	gofmt -s -w ./
 
-lint:
+lint: ## Run linter
 	golint
 
-test:
+test: ## Run test
 	go test -v
 
-get:
+get: ## Get dependencies
 	go get
 
-build: format get
-	@printf "$GDetected OS/ARCH: $R$(detected_OS)/$(detected_arch)$D\n"
-	CGO_ENABLED=0 GOOS=$(detected_OS) GOARCH=$(detected_arch) go build -v -o telebot -ldflags "-X="github.com/andriuk/telebot/cmd.appVersion=${VERSION}
+##@ Build
+build: format get ## Default build for Linux amd64
+	CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -v -o ./${BUILD_DIR}/kbot${EXT} -ldflags "-X=github.com/yuandrk/kbot/cmd.appVersion=${VERSION}"
 
-linux: format get
-	@printf "$GTarget OS/ARCH: $Rlinux/$(detected_arch)$D\n"
-	CGO_ENABLED=0 GOOS=linux GOARCH=$(detected_arch) go build -v -o telebot -ldflags "-X="github.com/andriuk/telebot/cmd.appVersion=${VERSION}
-	docker build --build-arg name=linux -t ${REGESTRY}/${APP}:$(detected_arch)_linux_${VERSION} .
+linux: build ## Build a Linux binary. [ linux [[arm|arm64] | [amd|amd64]] ] to build for the specific ARCH 
 
-windows: format get
-	@printf "$GTarget OS/ARCH: $Rwindows/$(detected_arch)$D\n"
-	CGO_ENABLED=0 GOOS=windows GOARCH=$(detected_arch) go build -v -o telebot -ldflags "-X="github.com/andriuk/telebot/cmd.appVersion=${VERSION}
-	docker build --build-arg name=windows -t ${REGESTRY}/${APP}:$(detected_arch)_windows_${VERSION} .
+apple: build ## Build a macOS binary
 
-darwin:format get
-	@printf "$GTarget OS/ARCH: $Rdarwin/$(detected_arch)$D\n"
-	CGO_ENABLED=0 GOOS=darwin GOARCH=$(detected_arch) go build -v -o telebot -ldflags "-X="github.com/andriuk/telebot/cmd.appVersion=${VERSION}
-	docker build --build-arg name=darwin -t ${REGESTRY}/${APP}:$(detected_arch)_darwin_${VERSION} .
+windows: EXT = .exe
+windows: build ## Build a Windows binary
 
-arm: format get
-	@printf "$GTarget OS/ARCH: $R$(detected_OS)/arm$D\n"
-	CGO_ENABLED=0 GOOS=$(detected_OS) GOARCH=arm go build -v -o telebot -ldflags "-X="github.com/andriuk/telebot/cmd.appVersion=${VERSION}
-	docker build --build-arg name=arm -t ${REGESTRY}/${APP}:$(detected_OS)_arm_${VERSION} .
+##@ Building and Push
+image: ## Build container image for defaul OS/Arch [linux/amd64]
+	docker build . -t ${REGISTRY}/${APP}:${VERSION}-${TARGETOS}-${TARGETARCH} --build-arg TARGETOS=${TARGETOS} --build-arg TARGETARCH=${TARGETARCH}
 
-image:
-	docker build . -t ${REGESTRY}/${APP}:$(detected_arch)_${VERSION}
+image-linux: image ## image-linux [ARCH] is an alias to linux [ARCH] image
 
-push:
-	docker push ${REGESTRY}/${APP}:$(detected_arch)_${VERSION}
+image-apple: TARGETOS = darwin
+image-apple: image ## image-apple [ARCH] is an alias to apple [ARCH] image
 
-clean:
-	@rm -rf telebot; \
-	IMG1=$$(docker images -q | head -n 1); \
-	if [ -n "$${IMG1}" ]; then  docker rmi -f $${IMG1}; else printf "$RImage not found$D\n"; fi
+image-windows: TARGETOS = windows
+image-windows: image ## image-windows [ARCH] is an alias to windows [ARCH] image
+
+push: ## Push default container image to the REGISTRY
+	docker push ${REGISTRY}/${APP}:${VERSION}-${TARGETOS}-${TARGETARCH}
+
+##@ Clean
+clean: ## Delete build dir
+	rm -rf ./out
+
+clean-image: ## Delete last created container image
+	docker rmi ${REGISTRY}/${APP}:${VERSION}-${TARGETOS}-${TARGETARCH} -f
+
+clean-all: clean clean-image ## Clean all
+
+##@ Help
+.PHONY: help
+
+help: ## Display this help
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m[ target ]\033[0m\n"} \
+	/^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2 } \
+	/^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+	@echo -e "\nYou can combine certain targets together. So, in order to push a specific image to a registry, do the following:\n\n    \033[36mmake aplle arm image push\033[0m \n\nThis will build macOS binary for arm64 architecture, make image with specifc name and push it to the registry."
+
+.PHONY: -n
+-n: ## Running make -n [target] will display the planned actions without actually executing them
+%::
+	@true

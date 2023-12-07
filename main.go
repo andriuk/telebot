@@ -1,9 +1,9 @@
 /*
-Copyright © 2023 NAME HERE <yurii.andriuk@gmail.com>
+Copyright © 2023  yurii.andriuk@gmail.com
 */
 package main
 
-import "github.com/andriuk/telebot/cmd"
+import "github.com/andriuk/kbot/cmd"
 
 func main() {
 	cmd.Execute()

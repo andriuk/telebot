@@ -18,7 +18,7 @@ Used for write data from Apple Shortcuts
 
 1. **Clone this repository** by running the following command in your terminal:
 
-`$ git clone git@github.com:andriuk/telebot.git`
+`$ git clone git@github.com:andriuk/kbot.git`
 
 2. **Create your own Telegram bot:**
 
@@ -41,7 +41,7 @@ Paste your API token
 
 4. **Run the bot** using the following command:
 
-`$ ./telebot start`
+`$ ./kbot start`
 
 5. **Interact with your Telegram bot** by sending messages to log them in the CSV file.
 
