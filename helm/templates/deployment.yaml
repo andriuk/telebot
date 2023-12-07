@@ -17,7 +17,7 @@ spec:
       {{- end }}
       labels:
         {{- include "helm.labels" . | nindent 8 }}
-	      {{- with .Values.podLabels }}
+        {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
@@ -26,26 +26,26 @@ spec:
           - 1.1.1.1
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
+        - name: ghcr-credentials
       {{- end }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       volumes:
-      - hostPath:
-          path: /dev/mem
-          type: ""
-        name: dev-mem
+        - hostPath:
+            path: /dev/mem
+            type: ""
+          name: dev-mem
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           volumeMounts:
-          - mountPath: /dev/mem
-            name: dev-mem
-          image: "{{ .Values.image.repository }}/kbot:{{ .Values.image.tag | default .Chart.AppVersion }}"
+            - mountPath: /dev/mem
+              name: dev-mem
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}-{{ .Values.image.os}}-{{ .Values.image.arch }}"
           env:
-          - name: {{ .Values.secret.env }}
-            valueFrom:
-              secretKeyRef:
-                key: {{ .Values.secret.key }}
-                name: {{ .Values.secret.name }}
+            - name: {{ .Values.secret.env }}
+              valueFrom:
+                secretKeyRef:
+                  key: tokenKey
+                  name: {{ .Values.secret.tokenName }}

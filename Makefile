@@ -5,7 +5,7 @@ APP = $(shell basename $(shell git remote get-url origin) .git)
 
 VERSION = $(shell git describe --tags --abbrev=0)-$(shell git rev-parse --short HEAD)
 BUILD_DIR = out
-REGISTRY = ghcr.io/yuandrk
+REGISTRY = yuandrk
 
 ARGS1 := $(word 1,$(MAKECMDGOALS)) 
 ARGS2 := $(word 2,$(MAKECMDGOALS))

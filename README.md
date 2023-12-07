@@ -25,6 +25,10 @@ Used for write data from Apple Shortcuts
 - Go to [BotFather](https://t.me/BotFather) on Telegram.
 - Use the `/newbot` command to create a new bot and follow the instructions to get the API token.
 
+Here you go make file which help you build go program 
+doc in processing 
+
+
 3. **Store your Telegram bot API token in an environment variable:**
 
 - Use the command below to set the API token as an environment variable. Replace `<YOUR_API_TOKEN>` with the obtained token.
@@ -37,7 +41,7 @@ For more secure use command below:
 
 Paste your API token 
 
-   `$ export TELE_TOKEN=<YOUR_API_TOKEN>`
+   `$ export $TELE_TOKEN`
 
 4. **Run the bot** using the following command:
 

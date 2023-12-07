@@ -5,8 +5,10 @@
 replicaCount: 1
 
 image:
-  repository: yuandrk
-  tag: "1.0.1"
+  registry: ""
+  os: "linux"
+  repository: "yuandrk/kbot"
+  tag: "v1.0.1-649f933"
   arch: amd64
 
 secret:
