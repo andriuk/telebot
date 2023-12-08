@@ -30,9 +30,6 @@ jobs:
     - name: Build & Push
       run: make image push
 
-    - name: Clean
-      run: make clean-all
-
   cd:
     name: CD
     needs: ci
