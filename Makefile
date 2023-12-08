@@ -1,76 +1,71 @@
-.DEFAULT_GOAL := help
-SHELL := /bin/bash
+ifeq '$(findstring ;,$(PATH))' ';'
+   detected_OS := linux
+	detected_arch := amd64
+else
+    detected_OS := $(shell uname | tr '[:upper:]' '[:lower:]' 2> /dev/null || echo Unknown)
+    detected_OS := $(patsubst CYGWIN%,Cygwin,$(detected_OS))
+    detected_OS := $(patsubst MSYS%,MSYS,$(detected_OS))
+    detected_OS := $(patsubst MINGW%,MSYS,$(detected_OS))
+	detected_arch := $(shell dpkg --print-architecture 2>/dev/null || amd64)
+endif
 
-APP = $(shell basename $(shell git remote get-url origin) .git)
+#colors:
+B = \033[1;94m#   BLUE
+G = \033[1;92m#   GREEN
+Y = \033[1;93m#   YELLOW
+R = \033[1;31m#   RED
+M = \033[1;95m#   MAGENTA
+K = \033[K#       ERASE END OF LINE
+D = \033[0m#      DEFAULT
+A = \007#         BEEP
 
-VERSION = $(shell git describe --tags --abbrev=0)-$(shell git rev-parse --short HEAD)
-BUILD_DIR = out
-REGISTRY = yuandrk
-
-ARGS1 := $(word 1,$(MAKECMDGOALS)) 
-ARGS2 := $(word 2,$(MAKECMDGOALS))
-
-TARGETOS ?= $(if $(filter apple,$(ARGS1)),darwin,$(if $(filter windows,$(ARGS1)),windows,linux))
-TARGETARCH ?= $(if $(filter arm arm64,$(ARGS2)),arm64,$(if $(filter amd amd64,$(ARGS2)),amd64,amd64))
-
-##@ Helpers
-format: ## Code formatting
+APP=$(shell basename $(shell git remote get-url origin))
+REGESTRY=yuandrk
+VERSION=$(shell git describe --tags --abbrev=0)-$(shell git rev-parse --short HEAD)
+	
+format:
 	gofmt -s -w ./
 
-lint: ## Run linter
-	golint
-
-test: ## Run test
-	go test -v
-
-get: ## Get dependencies
+get:
 	go get
 
-##@ Build
-build: format get ## Default build for Linux amd64
-	CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -v -o ./${BUILD_DIR}/kbot${EXT} -ldflags "-X=github.com/yuandrk/kbot/cmd.appVersion=${VERSION}"
+lint:
+	golint
 
-linux: build ## Build a Linux binary. [ linux [[arm|arm64] | [amd|amd64]] ] to build for the specific ARCH 
+test:
+	go test -v
 
-apple: build ## Build a macOS binary
+build: format get
+	@printf "$GDetected OS/ARCH: $R$(detected_OS)/$(detected_arch)$D\n"
+	CGO_ENABLED=0 GOOS=$(detected_OS) GOARCH=$(detected_arch) go build -v -o kbot -ldflags "-X="github.com/yuandrk/kbot/cmd.appVersion=${VERSION}
 
-windows: EXT = .exe
-windows: build ## Build a Windows binary
+linux: format get
+	@printf "$GTarget OS/ARCH: $Rlinux/$(detected_arch)$D\n"
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(detected_arch) go build -v -o kbot -ldflags "-X="github.com/yuandrk/kbot/cmd.appVersion=${VERSION}
+	docker build --build-arg name=linux -t ${REGESTRY}/${APP}:${VERSION}-linux-$(detected_arch) .
 
-##@ Building and Push
-image: ## Build container image for defaul OS/Arch [linux/amd64]
-	docker build . -t ${REGISTRY}/${APP}:${VERSION}-${TARGETOS}-${TARGETARCH} --build-arg TARGETOS=${TARGETOS} --build-arg TARGETARCH=${TARGETARCH}
+windows: format get
+	@printf "$GTarget OS/ARCH: $Rwindows/$(detected_arch)$D\n"
+	CGO_ENABLED=0 GOOS=windows GOARCH=$(detected_arch) go build -v -o kbot -ldflags "-X="github.com/yuandrk/kbot/cmd.appVersion=${VERSION}
+	docker build --build-arg name=windows -t ${REGESTRY}/${APP}:${VERSION}-windows-$(detected_arch) .
 
-image-linux: image ## image-linux [ARCH] is an alias to linux [ARCH] image
+darwin:format get
+	@printf "$GTarget OS/ARCH: $Rdarwin/$(detected_arch)$D\n"
+	CGO_ENABLED=0 GOOS=darwin GOARCH=$(detected_arch) go build -v -o kbot -ldflags "-X="github.com/yuandrk/kbot/cmd.appVersion=${VERSION}
+	docker build --build-arg name=darwin -t ${REGESTRY}/${APP}:${VERSION}-darwin-$(detected_arch) .
 
-image-apple: TARGETOS = darwin
-image-apple: image ## image-apple [ARCH] is an alias to apple [ARCH] image
+arm: format get
+	@printf "$GTarget OS/ARCH: $R$(detected_OS)/arm$D\n"
+	CGO_ENABLED=0 GOOS=$(detected_OS) GOARCH=arm go build -v -o kbot -ldflags "-X="github.com/yuandrk/kbot/cmd.appVersion=${VERSION}
+	docker build --build-arg name=arm -t ${REGESTRY}/${APP}:${VERSION}-$(detected_OS)-arm .
 
-image-windows: TARGETOS = windows
-image-windows: image ## image-windows [ARCH] is an alias to windows [ARCH] image
+image: build
+	docker build . -t ${REGESTRY}/${APP}:${VERSION}-$(detected_arch)
 
-push: ## Push default container image to the REGISTRY
-	docker push ${REGISTRY}/${APP}:${VERSION}-${TARGETOS}-${TARGETARCH}
+push:
+	docker push ${REGESTRY}/${APP}:${VERSION}-$(detected_arch)
 
-##@ Clean
-clean: ## Delete build dir
-	rm -rf ./out
-
-clean-image: ## Delete last created container image
-	docker rmi ${REGISTRY}/${APP}:${VERSION}-${TARGETOS}-${TARGETARCH} -f
-
-clean-all: clean clean-image ## Clean all
-
-##@ Help
-.PHONY: help
-
-help: ## Display this help
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m[ target ]\033[0m\n"} \
-	/^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2 } \
-	/^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
-	@echo -e "\nYou can combine certain targets together. So, in order to push a specific image to a registry, do the following:\n\n    \033[36mmake aplle arm image push\033[0m \n\nThis will build macOS binary for arm64 architecture, make image with specifc name and push it to the registry."
-
-.PHONY: -n
--n: ## Running make -n [target] will display the planned actions without actually executing them
-%::
-	@true
+clean:
+	@rm -rf kbot; \
+	IMG1=$$(docker images -q | head -n 1); \
+	if [ -n "$${IMG1}" ]; then  docker rmi -f $${IMG1}; else printf "$RImage not found$D\n"; fi

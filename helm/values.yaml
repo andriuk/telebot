@@ -1,19 +1,13 @@
-# Default values for helm.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
-
 replicaCount: 1
-
 image:
-  registry: ""
+  repository: "yuandrk"
+  container: "kbot"
+  tag: "v1.0.1-d78363c"
   os: "linux"
-  repository: "yuandrk/kbot"
-  tag: "v1.0.1-649f933"
-  arch: amd64
-
+  arch: "amd64"
 secret:
-  name: "kbot"
-  env: "TELE_TOKEN"
-  key: "token"
+  name: "TELE_TOKEN"
+  tokenKey: "token"
+  tokenName: "kbot"
 securityContext:
   privileged: true
