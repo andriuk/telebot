@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   repository: "yuandrk"
   container: "kbot"
-  tag: "1.0.2-7daf4cf--"
+  tag: "1.0.2-bfb53fb--"
   os: "linux"
   arch: ""
 secret:
