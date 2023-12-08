@@ -2,9 +2,9 @@ replicaCount: 1
 image:
   repository: "yuandrk"
   container: "kbot"
-  tag: "v1.0.1-d78363c"
+  tag: "1.0.2-74f08e8--"
   os: "linux"
-  arch: "amd64"
+  arch: ""
 secret:
   name: "TELE_TOKEN"
   tokenKey: "token"
