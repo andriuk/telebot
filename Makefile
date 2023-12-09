@@ -63,7 +63,7 @@ image:
 	docker build . -t ${REGESTRY}/${APP}:${VERSION}-$(detected_OS)-$(detected_arch)
 
 push:
-	docker push ${REGESTRY}/${APP}:${VERSION}-$(detected_arch)
+	docker push ${REGESTRY}/${APP}:${VERSION}
 
 clean:
 	@rm -rf kbot; \
