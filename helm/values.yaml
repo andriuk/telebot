@@ -1,7 +1,7 @@
 replicaCount: 1
 image:
   registry: "ghcr.io"
-  repository: "yuandrk/kbot"
+  repository: "yuandrk"
   container: "kbot"
   tag: "1.0.2-224c403"
   os: "linux"
