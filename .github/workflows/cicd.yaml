@@ -2,6 +2,7 @@ name: KBOT-CICD
 
 on: push
 
+
 jobs:
   ci:
     name: CI
@@ -13,7 +14,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
@@ -24,7 +25,7 @@ jobs:
       uses: docker/login-action@v3
       with:
         registry: ghcr.io
-        username: ${{ secrets.USERNAME_GIT }}
+        username: ${{ github.actor }}
         password: ${{ secrets.TOKEN_GIT }}
 
     - name: Build & Push
