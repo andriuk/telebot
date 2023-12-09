@@ -3,7 +3,7 @@ image:
   registry: "ghcr.io"
   repository: "yuandrk/kbot"
   container: "kbot"
-  tag: "1.0.2-23e90ab"
+  tag: "1.0.2-1ea460d"
   os: "linux"
   arch: "amd64"
 secret:
