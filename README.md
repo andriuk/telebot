@@ -1,5 +1,7 @@
 # Telegram Bot for Writing Messages 
 
+note: The act of creating documentation involves a process.
+
 This simple Go-based Telegram bot allows you to capture incoming messages and log them into a CSV file. 
 Useful for logging or archiving conversations and messages received on Telegram.
 
