@@ -1,6 +1,11 @@
 # Telegram Bot for Writing Messages 
 
+<<<<<<< HEAD
+####  documentation in process 
+
+=======
 note: The act of creating documentation involves a process.
+>>>>>>> main
 
 This simple Go-based Telegram bot allows you to capture incoming messages and log them into a CSV file. 
 Useful for logging or archiving conversations and messages received on Telegram.
@@ -55,7 +60,6 @@ The CD process encompasses the following steps:
 ### Example of ArgoCD deployment 
 
 ![ArgoCD](/doc/img/mvp_3.png)
-
 
 ## Installation Guide
 
