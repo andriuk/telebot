@@ -59,7 +59,7 @@ var kbotCmd = &cobra.Command{
 		})
 
 		kbot.Handle(telebot.OnSticker, func(ctx telebot.Context) error {
-			answerStr := "It's ver funny... actually no 😠"
+			answerStr := "It's very funny, i think so"
 			err = ctx.Send(answerStr)
 			return err
 		})
