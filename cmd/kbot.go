@@ -47,7 +47,7 @@ var kbotCmd = &cobra.Command{
 		})
 
 		kbot.Handle(telebot.OnVoice, func(ctx telebot.Context) error {
-			answerStr := "I don' have ears, so I can't hear you :)"
+			answerStr := "I don' have ears"
 			err = ctx.Send(answerStr)
 			return err
 		})
