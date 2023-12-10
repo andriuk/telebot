@@ -37,6 +37,7 @@ jobs:
   cd:
     name: CD
     needs: ci
+    if: github.actor != 'github-actions[bot]' # Prevents loop by ignoring commits from GitHub Actions bot
     runs-on: ubuntu-latest
 
     steps:
